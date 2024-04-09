@@ -1,0 +1,34 @@
+Package: htGLMNET
+Type: Package
+Title: High Throughput Light Weight Regularized Regression Modeling for 
+    Molecular Data
+Version: 0.1.0
+Maintainer: Piotr Tymoszuk <piotr.s.tymoszuk@gmail.com>
+Description: The package enables for fitting and basic evaluation of regularized 
+    regression models via the interface of the glmnet package. 
+    The pre-processing, modeling and evelaution tools were fine tuned 
+    specifically for use with genomic, transcriptomic, proteomic and 
+    pharmaco-molecular data.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+LazyDataCompression: xz
+Authors@R: 
+    person("Piotr", "Tymoszuk", , "piotr.s.tymoszuk@gmail.com", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-0398-6034"))
+RoxygenNote: 7.2.3
+Roxygen: list(markdown = TRUE)
+Imports: 
+    caret,
+    dplyr,
+    furrr,
+    ggplot2,
+    ggrepel,
+    glmnet,
+    microViz,
+    purrr,
+    rlang,
+    sva,
+    tibble,
+Depends: 
+    generics
