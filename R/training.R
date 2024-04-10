@@ -158,7 +158,9 @@
 
     }
 
-    if(length(base::intersect(colnames(x), rownames(y))) == 0) {
+    common_observations <- base::intersect(colnames(x), rownames(y))
+
+    if(length(common_observations) == 0) {
 
       stop("No matched observations in 'x' and 'y'. Wrong modeling matrices?",
            call. = FALSE)
@@ -171,6 +173,9 @@
     on.exit(message(paste('Elapsed:', Sys.time() - start_time)))
 
     ## x matrix and response vectors -----------
+
+    x <- x[, common_observations]
+    y <- y[common_observations, ]
 
     x <- t(x)
 
