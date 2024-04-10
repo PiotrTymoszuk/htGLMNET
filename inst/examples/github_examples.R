@@ -16,12 +16,23 @@
 
   training_x <- gdsc_expression
 
-  ## and IC50 concentrations in µM of ten anti-cancer drugs
+  training_x[1:5, 1:5]
+
+  ## test data: whole-tumor (bulk) gene expression in pancreatic cancers
+  ## already log-transformed, to improve normality
+
+  test_x <- paad_cptac
+
+  test_x[1:5, 1:5]
+
+  ## IC50 concentrations in µM of ten anti-cancer drugs
   ## log transformation greatly improves normality!
   ## Yet, `glmnet` may have problems with negative values after
-  ## the log transformetion, to avoid that, we're transforming the IC50 to pM
+  ## the log transformation, to avoid that, we're transforming the IC50 to pM
 
   training_ic50 <- gdsc_ic50
+
+  training_ic50[1:5, 1:5]
 
   training_ic50 %>%
     as.data.frame %>%
@@ -34,12 +45,9 @@
     map_dfr(shapiro_test) %>%
     mutate(variable = colnames(training_ic50))
 
+  ## picomole conversion and log transformation
+
   training_ic50 <- log(1e6 * training_ic50)
-
-  ## test data: whole-tumor (bulk) gene expression in pancreatic cancers
-  ## already log-transformed, to improve normality
-
-  test_x <- paad_cptac
 
 # Pre-processing ---------
 
@@ -58,6 +66,7 @@
                               gini_quantile = 0.2)
 
   ## the effects of batch adjustment and common gene numbers
+  ## can be inspected by `summary()` and `plot()`
 
   summary(pre_pro_data)
 
@@ -75,11 +84,11 @@
     scale_y_continuous(limits = c(0, 15))
 
   pre_pro_plots$before_adjustment$gini_coef +
-    labs(title = 'Median, before ComBat',
+    labs(title = 'Gini index, before ComBat',
          x = 'Data set') +
     scale_y_continuous(limits = c(0, 1)) +
     pre_pro_plots$after_adjustment$gini_coef +
-    labs(title = 'Median, after ComBat',
+    labs(title = 'Gini index, after ComBat',
          x = 'Data set') +
     scale_y_continuous(limits = c(0, 1))
 
@@ -113,11 +122,11 @@
 
   summary(train_object)
 
-  train_plots <- plot(train_object)
-
   ## again, diagnostic plots in `ggplot` format can be easily
   ## customized. In this cases, we're adding lines of cutoffs of
   ## substantial correlation (r >= 0.5) and explained variance (R^2 >= 0.26)
+
+  train_plots <- plot(train_object)
 
   train_plots$rsq_pearson +
     labs(title = 'Molde performance: CV and training') +
@@ -133,7 +142,7 @@
   ## By this way, we're selecting only the features that contribute to
   ## prediction of drug sensitivity
   ##
-  ## Coefficients of the models are obtained via `coef()`, whoch returns
+  ## Coefficients of the models are obtained via `coef()`, which returns
   ## a matrix for all investigated genes.
 
   train_coefficients <- coef(train_object)
@@ -156,14 +165,15 @@
     map(as_tibble) %>%
     set_names(colnames(train_coefficients))
 
-  ## plotting coefficients of the most influential
-  ## signature members for cis-platin
+  ## plotting coefficients of the signature members for cis-platin
 
   non_zero$Cisplatin_1005 %>%
     ggplot(aes(x = beta,
                y = reorder(gene_symbol, beta),
                fill = factor(sign(beta)))) +
     geom_bar(stat = 'identity') +
+    scale_fill_manual(values = c('-1' = 'steelblue',
+                                 '1' = 'indianred3')) +
     theme_bw() +
     theme(axis.title.y = element_blank(),
           axis.text.y = element_text(face = 'italic'),
@@ -186,7 +196,7 @@
 
   test_ic50 <- exp(test_ic50) * 1e-6
 
-  test_ic50[1:5, 1:10]
+  test_ic50[1:5, 1:5]
 
   ## let's visualize predictions for
   ## the models with the best performance
