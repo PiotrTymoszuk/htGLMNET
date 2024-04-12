@@ -38,8 +38,12 @@
 # ductal adenocarcinoma. Cell (2021) 184:5031-5052.e26.
 # doi:10.1016/J.CELL.2021.08.023
 #
-# The training data were fetched from:
+# The CPTAC training data were fetched from:
 # https://www.cbioportal.org/study/summary?id=paad_cptac_2021
+#
+# The TCGA PAAD training data were obtained from:
+# https://www.cbioportal.org/study/summary?id=paad_tcga_pan_can_atlas_2018
+
 
 #' Baseline gene expression of cancer cell lines, GDSC2 study.
 #'
@@ -146,7 +150,7 @@
 #'
 #' @format
 #' a numeric matrix with RNA sequencing gene expression levels normalized by
-#' RSEM and log-transformed. The matrix contains 2364 rows and 140 columns.
+#' RSEM and log-transformed. The matrix contains 23642 rows and 140 columns.
 #' Genes (symbols) are placed in rows, cancer sample identifiers are in columns.
 #'
 #' @source https://www.cbioportal.org/study/summary?id=paad_cptac_2021
@@ -155,7 +159,36 @@
 #'
 #' @name paad_cptac
 #'
-#' @usage data(paad_cptac )
+#' @usage data(paad_cptac)
+
+  NULL
+
+#' Bulk cancer RNA sequencing, TCGA PAAD study.
+#'
+#' @description
+#' Bulk cancer expression data (RSEM, log transformed) for 177 pancreatic
+#' ductal cancer samples from the pan-cancer TCGA PAAD cohort.
+#'
+#' @references
+#' Liu J, Lichtenberg T, Hoadley KA, Poisson LM, Lazar AJ, Cherniack AD,
+#' Kovatich AJ, Benz CC, Levine DA, Lee A V., et al.
+#' An Integrated TCGA Pan-Cancer Clinical Data Resource to Drive High-Quality
+#' Survival Outcome Analytics.
+#' Cell (2018) 173:400-416.e11. doi:10.1016/J.CELL.2018.02.052
+#'
+#' @format
+#' a numeric matrix with RNA sequencing gene expression levels normalized by
+#' RSEM and log-transformed. The matrix contains 20511 rows and 177 columns.
+#' Genes (symbols) are placed in rows, cancer sample identifiers are in columns.
+#'
+#' @source
+#' https://www.cbioportal.org/study/summary?id=paad_tcga_pan_can_atlas_2018
+#'
+#' @docType data
+#'
+#' @name paad_tcga
+#'
+#' @usage data(paad_tcga)
 
   NULL
 

@@ -2,9 +2,12 @@
 % Please edit documentation in R/modData_oop.R
 \name{summary.modData}
 \alias{summary.modData}
+\alias{summary.modMData}
 \title{Summary of a \code{modData} object.}
 \usage{
 \method{summary}{modData}(object, ...)
+
+\method{summary}{modMData}(object, ...)
 }
 \arguments{
 \item{object}{a \code{modData} object.}

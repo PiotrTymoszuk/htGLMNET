@@ -16,11 +16,17 @@
 
   load('./inst/examples/pck_devel.RData')
 
-  ## test set expression
+  ## test set expression: CPTAC
 
   paad_cptac <- pck_devel$test_expression$cptac
 
   save(paad_cptac, file = './data/paad_cptac.RData', compress = 'xz')
+
+  ## test set expression: TCGA
+
+  paad_tcga <- pck_devel$test_expression$tcga
+
+  save(paad_tcga, file = './data/paad_tcga.RData', compress = 'xz')
 
   ## training data set phenotype: the first 10 drugs
   ## and randomly selected 200 cell lines with the complete data

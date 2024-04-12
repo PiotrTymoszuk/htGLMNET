@@ -2,9 +2,12 @@
 % Please edit documentation in R/modData_oop.R
 \name{nobs.modData}
 \alias{nobs.modData}
+\alias{nobs.modMData}
 \title{Numbers of variables and observations.}
 \usage{
 \method{nobs}{modData}(object, ...)
+
+\method{nobs}{modMData}(object, ...)
 }
 \arguments{
 \item{object}{an instance of the \code{modData} class.}
@@ -12,7 +15,7 @@
 \item{...}{extra arguments, currently none.}
 }
 \value{
-a numeric vector.
+a data frame.
 }
 \description{
 Numbers of observations and variables in a \code{modData} object.

@@ -2,9 +2,20 @@
 % Please edit documentation in R/preprocessing.R
 \name{pre_process}
 \alias{pre_process}
+\alias{multi_process}
 \title{Pre-process training and test data sets of explanatory variables.}
 \usage{
 pre_process(
+  train,
+  test,
+  mean_quantile = NULL,
+  median_quantile = NULL,
+  gini_quantile = NULL,
+  trans_fun = identity,
+  ...
+)
+
+multi_process(
   train,
   test,
   mean_quantile = NULL,
@@ -20,8 +31,9 @@ features (e.g. genes) in rows and observations in columns.
 Note: it is recommended that it contains only positive values, if the
 modeling features are selected with a Gini index cutoff.}
 
-\item{test}{a numeric matrix of test explanatory variables in the same format
-as above.}
+\item{test}{a numeric matrix of test explanatory variables
+(function \code{pre_process()}) or a list of numeric matrices in the same format
+as \code{train}.}
 
 \item{mean_quantile}{a numeric that specifies the quantile cutoff
 of mean value of the features to be selected. Default is \code{NULL}, which means
@@ -35,7 +47,8 @@ filtering will be applied.}
 the modeling features of sufficient variability. If \code{NULL} (default), no
 filtering of modeling features by Gini coefficient will be applied.}
 
-\item{trans_fun}{a function used to transform the output, \code{log} by default.}
+\item{trans_fun}{a function used to transform the output,
+\code{identity} by default.}
 
 \item{...}{extra arguments passed to \code{\link[sva]{ComBat}}.}
 }
@@ -44,8 +57,10 @@ An instance of the \code{modData} class with the following components:
 \itemize{
 \item \code{train}: a batch-adjusted numeric training matrix of selected
 explanatory factors, features in rows and observations in columns.
-\item \code{test}: a batch-adjusted numeric test matrix of selected
-explanatory factors, features in rows and observations in columns.
+\item \code{test}: for \code{pre_process()}: a batch-adjusted numeric test matrix of
+selected explanatory factors, features in rows and observations in columns.
+For \code{multi_process()}: a list of batch-adjusted numeric test matrices of the
+selected modeling explanatory features.
 \item \code{stats}: distribution statistics of all features prior to the batch
 correction: mean, median, Gini index,
 and an indicator if the feature was selected as a modeling variable.
@@ -62,20 +77,28 @@ Note the \code{\link{nobs.modData}}, \code{\link{components.modData}},
 defined for the class.
 }
 \description{
-A function for selection of common variable features in the training and
+Functions for selection of common variable features in the training and
 and test sets of explanatory variables (e.g. gene expression counts or
-protein reads) and batch correction. This tool streamlines the pre-processing
-step of model development and offers few quality control measures that
-allow the user to control the pre-processed data sets prior to modeling.
+protein reads) and batch correction. These tools streamline the
+pre-processing step of model development and offer few quality control
+measures that allow the user to control the pre-processed data sets
+prior to modeling.
+The function \code{pre_process()} is designed to handle a pair of training
+and test matrices and its output may be passed directly to the modeling tool
+\code{train()}.
+The function \code{multi_process()}, can handle any list of numeric matrices.
 }
 \details{
-Technically, the function identifies common features in the \code{train} and
-\code{test} numeric matrices of explanatory data, computes their distribution
-metrics (median, mean, Gini index), and selects the modeling variables based
+Technically, the functions identify common features in the \code{train} and
+\code{test} numeric matrices of explanatory data.
+Next, distribution metrics of such common features (median, mean, Gini index)
+are computed, and modeling variables are selected based
 on cutoffs of mean, median, or Gini index provided by the user.
 Finally, the numeric matrices with the selected modeling features are
 subjected to batch adjustment with the ComBat algorithm
 (see: \code{\link[sva]{ComBat}} for details).
+The function \code{multi_process()} will run in parallel, when a
+\code{furrr}-compatible backend is declared.
 }
 \references{
 Leek JT, Johnson WE, Parker HS, Jaffe AE, Storey JD.

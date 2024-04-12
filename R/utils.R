@@ -1,5 +1,210 @@
 # Non exported utilities
 
+# Pre-processing -------
+
+#' Pre-process a list of numeric matrices.
+#'
+#' @description
+#' Pre-processing of a list of numeric matrices as described for
+#' \code{\link{pre_process}}.
+#'
+#' @details
+#' For internal use only!
+#'
+#' @return
+#' A list with two elements:
+#'
+#' * `x`: a list of numeric matrices adjusted for bacth effects and containing
+#' only the selected modeling features.
+#'
+#' * `stats`: feature distributions statistics (median, mean, Gini index) of
+#' all features shared by the input data.
+#'
+#' * `mean_limits`, `median_limits`, `gini_limits`: numeric vectors of cutoffs
+#' of mean, median, and Gini index of explanatory features used for selection
+#' of the modeling variables.
+#'
+#' @param x a list of numeric matrices. Modeling features are provided in rows,
+#' observations are in columns.#'
+#' @param mean_quantile a numeric that specifies the quantile cutoff
+#' of mean value of the features to be selected. Default is `NULL`, which means
+#' that no filtering by mean feature value will be applied.
+#' @param median_quantile as above, a quantile of median used to select
+#' the features. Defaults to `NULL`, which implicates that no median feature
+#' filtering will be applied.
+#' @param gini_quantile as above, a quantile of Gini coefficient used to select
+#' the modeling features of sufficient variability. If `NULL` (default), no
+#' filtering of modeling features by Gini coefficient will be applied.
+#' @param trans_fun a function used to transform the output,
+#' `identity` by default.
+#' @param ... extra arguments passed to \code{\link[sva]{ComBat}}.
+
+  x_mats <- function(x,
+                     mean_quantile = NULL,
+                     median_quantile = NULL,
+                     gini_quantile = NULL,
+                     trans_fun = identity, ...) {
+
+    ## the input control is done by the upstream functions.
+
+    ## common features and feature selection --------
+
+    common_features <- map(x, rownames)
+
+    common_features <- reduce(common_features, base::intersect)
+
+    if(length(common_features) == 0) {
+
+      stop('There are no shared modeling features.', call. = FALSE)
+
+    }
+
+    x <- map(x, ~.x[common_features, ])
+
+    ## implementation of palatalization for larger inputs
+
+    if(length(x) > 2) {
+
+      gene_stats <- future_map(x,
+                               row_stats,
+                               .options = furrr_options(seed = TRUE))
+
+    } else {
+
+      gene_stats <- map(x, row_stats)
+
+    }
+
+    ## filtering out completely invariant genes
+
+    zeroVar <- NULL
+    variable <- NULL
+
+    gene_stats <- map(gene_stats,
+                      filter,
+                      !zeroVar)
+
+    gene_stats <- map(gene_stats,
+                      ~.x[c('variable', 'median', 'mean', 'gini_coef')])
+
+    gene_selection <- gene_stats
+
+    mean_limits <- NULL
+    median_limits <- NULL
+    gini_limits <- NULL
+
+    if(!is.null(mean_quantile)) {
+
+      mean_limits <- map_dbl(gene_selection,
+                             ~quantile(.x$mean,
+                                       probs = mean_quantile,
+                                       na.rm = TRUE))
+
+      gene_selection <-
+        map2(gene_selection, mean_limits,
+             ~filter(.x, mean >= .y))
+
+    }
+
+    if(!is.null(median_quantile)) {
+
+      median_limits <- map_dbl(gene_selection,
+                               ~quantile(.x$median,
+                                         probs = median_quantile,
+                                         na.rm = TRUE))
+
+      gene_selection <-
+        map2(gene_selection, median_limits,
+             ~filter(.x, median >= .y))
+
+    }
+
+    if(!is.null(gini_quantile)) {
+
+      gini_limits <- map_dbl(gene_selection,
+                             ~quantile(.x$gini_coef,
+                                       probs = gini_quantile,
+                                       na.rm = TRUE))
+
+      gene_selection <-
+        map2(gene_selection, gini_limits,
+             ~filter(.x, gini_coef >= .y))
+
+    }
+
+    gene_selection <- map(gene_selection, ~.x$variable)
+
+    gene_selection <- reduce(gene_selection, base::intersect)
+
+    modeling_variable <- NULL
+
+    gene_stats <- map(gene_stats,
+                      mutate,
+                      modeling_variable = ifelse(variable %in% gene_selection,
+                                                 'yes', 'no'))
+
+    x <- map(x, ~.x[gene_selection, ])
+
+    ## batch adjustment ---------
+
+    batch_ids <- map(x, colnames)
+
+    batch_vct <-
+      map2(names(batch_ids),
+           map_dbl(batch_ids, length),
+           ~rep(.x, .y))
+
+    batch_vct <- reduce(batch_vct, c)
+
+    cmm_data <- reduce(x, cbind)
+
+    adj_data <- ComBat(dat = cmm_data,
+                       batch = batch_vct, ...)
+
+    adj_data <- trans_fun(adj_data)
+
+    adj_data <- map(batch_ids, ~adj_data[, .x])
+
+    ## output ---------
+
+    list(x = adj_data,
+         stats = gene_stats,
+         mean_limits = mean_limits,
+         median_limits = median_limits,
+         gini_limits = gini_limits)
+
+  }
+
+# Distribution stats of a list of numeric matrices ------
+
+#' Distribution statistics for a list of numeric matrices.
+#'
+#' @description
+#' An internal tool used by `summary()` methods, which computes
+#' numbers of features, observations, missing data poins and distribution
+#' statistics for a list of numeric matrices.
+#'
+#' @return a data frame with the statistics.
+#'
+#' @param x a list of numeric matrices.
+
+  mat_stats <- function(x) {
+
+    map2_dfr(x, names(x),
+             ~tibble(data_set = .y,
+                     n_features = nrow(.x),
+                     n_observations = ncol(.x),
+                     n_missing = sum(is.na(.x)),
+                     mean = mean(.x, na.rm = TRUE),
+                     sd = sd(.x, na.rm = TRUE),
+                     median = median(.x, na.rm = TRUE),
+                     q25 = quantile(.x, 0.25, na.rm = TRUE),
+                     q75 = quantile(.x, 0.75, na.rm = TRUE),
+                     q025 = quantile(.x, 0.025, na.rm = TRUE),
+                     q975 = quantile(.x, 0.975, na.rm = TRUE)))
+
+  }
+
 # Fitting of Gaussian and Poisson family models ------
 
 #' Serial fit of models.
@@ -394,5 +599,89 @@
 
   }
 
+# Predictions --------
+
+#' Predictions for a list `cv.glmnet` models.
+#'
+#' @description
+#' Predicts responses, linear predictor scores, coefficients and similar,
+#' for a list of `cv.glmnet` objects. Intended for the internal use.
+#'
+#' @return As described for \code{\link{predict.modTrain}}.
+#'
+#' @param models a list of `cv.glmnet` models.
+#' @param lambdas a numeric vector of lambdas to make predictions for.
+#' @param newx a numeric matrix of explanatory factors.
+#' @param type of prediction, see: \code{\link{predict.modTrain}}.
+#' @param family modeling family.
+#' @param newoffset modeling offset.
+#' @param ... extra arguments passed to \code{\link[glmnet]{predict.glmnet}}.
+
+  pred_ <- function(models,
+                    lambdas,
+                    newx,
+                    type,
+                    family,
+                    newoffset = NULL,
+                    ...) {
+
+    ## entry control is accomplished by upstream functions
+
+    responses <- names(models)
+
+    if(!is.null(newoffset)) {
+
+      preds <- map2(models,
+                    lambdas,
+                    ~predict(.x,
+                             newx = newx,
+                             s = .y,
+                             type = type,
+                             newoffset = newoffset))
+
+    } else {
+
+      preds <- map2(models,
+                    lambdas,
+                    ~predict(.x,
+                             newx = newx,
+                             s = .y,
+                             type = type,
+                             newoffset = .x$glmnet.fit$offset))
+
+    }
+
+    if(type == 'class' | family %in% c('gaussian', 'poisson', 'binomial')) {
+
+      for(i in seq_along(preds)) {
+
+        colnames(preds[[i]]) <- responses[[i]]
+
+      }
+
+      pred_mat <- reduce(map(preds, as.matrix), cbind)
+
+      ## for multinomial model class predictions, row names are not
+      ## provided by default and will be appended
+
+      if(family == 'multinomial') {
+
+        rownames(pred_mat) <- rownames(newx)
+
+      }
+
+      return(pred_mat)
+
+    }
+
+    ## for predictions of multinomial models of type 'response' and 'class'
+    ## lists of matrices with elements corresponding to the response variables
+    ## are produced
+
+    preds <- map(preds, ~.x[, , 1])
+
+    return(preds)
+
+  }
 
 # END -----

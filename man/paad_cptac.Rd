@@ -6,14 +6,14 @@
 \title{Bulk cancer RNA sequencing, PAAD CPTAC study.}
 \format{
 a numeric matrix with RNA sequencing gene expression levels normalized by
-RSEM and log-transformed. The matrix contains 2364 rows and 140 columns.
+RSEM and log-transformed. The matrix contains 23642 rows and 140 columns.
 Genes (symbols) are placed in rows, cancer sample identifiers are in columns.
 }
 \source{
 https://www.cbioportal.org/study/summary?id=paad_cptac_2021
 }
 \usage{
-data(paad_cptac )
+data(paad_cptac)
 }
 \description{
 Bulk cancer expression data (RSEM, log transformed) for 140 pancreatic

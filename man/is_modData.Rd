@@ -2,9 +2,12 @@
 % Please edit documentation in R/modData_oop.R
 \name{is_modData}
 \alias{is_modData}
-\title{Test for an \code{modData} class instance.}
+\alias{is_modMData}
+\title{Test for an \code{modData} and \code{modMData} class instances.}
 \usage{
 is_modData(x)
+
+is_modMData(x)
 }
 \arguments{
 \item{x}{an object.}
@@ -13,5 +16,5 @@ is_modData(x)
 a logical value.
 }
 \description{
-Tests is an object is an instance of the \code{modData} class.
+Tests is an object is an instance of the \code{modData} or \code{modMData} class.
 }

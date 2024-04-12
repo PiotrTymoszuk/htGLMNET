@@ -2,10 +2,10 @@
 
 # Class testing -------
 
-#' Test for an `modData` class instance.
+#' Test for an `modData` and `modMData` class instances.
 #'
 #' @description
-#' Tests is an object is an instance of the `modData` class.
+#' Tests is an object is an instance of the `modData` or `modMData` class.
 #'
 #' @param x an object.
 #'
@@ -14,6 +14,11 @@
 #' @export
 
   is_modData <- function(x) inherits(x, 'modData')
+
+#' @rdname is_modData
+#' @export
+
+  is_modMData <- function(x) inherits(x, 'modMData')
 
 # Appearance -------
 
@@ -47,9 +52,8 @@
 #' @param object an instance of the `modData` class.
 #' @param ... extra arguments, currently none.
 #'
-#' @return a numeric vector.
+#' @return a data frame.
 #'
-#' @export nobs.modData
 #' @export
 
   nobs.modData <- function(object, ...) {
@@ -58,11 +62,31 @@
 
     n_features <- nrow(object$train)
 
-    n_observations <- map(object[c('train', 'test')], ncol)
+    n_observations <- map_dbl(object[c('train', 'test')], ncol)
 
-    c(n_training = n_observations[[1]],
-      n_test = n_observations[[2]],
-      n_variables = n_features)
+    tibble(object = c('training', 'test', 'variables'),
+           n = c(n_observations, n_features))
+
+  }
+
+#' @rdname nobs.modData
+#' @export
+
+  nobs.modMData <- function(object, ...) {
+
+    stopifnot(is_modMData(object))
+
+    n_features <- nrow(object$train)
+
+    n_observations <-
+      map_dbl(c(list(train = object[['train']]),
+                object[['test']]),
+              ncol)
+
+    tibble(object = c('training', names(object[['test']]), 'variables'),
+           n = c(n_observations, n_features))
+
+
 
   }
 
@@ -99,10 +123,8 @@
 #' @export
 
   components.modData <- function(object,
-                                  type = c('train', 'test', 'limits', 'stats'),
-                                  ...) {
-
-    stopifnot(is_modData(object))
+                                 type = c('train', 'test', 'limits', 'stats'),
+                                 ...) {
 
     type <- match.arg(type[1],
                       c('train', 'test', 'limits', 'stats'))
@@ -119,12 +141,19 @@
 
       limits <- compact(limits)
 
-      limits <- map2_dfr(limits, names(limits),
-                         ~tibble(statistic = .y,
-                                 train = .x[[1]],
-                                 test = .x[[2]]))
+      if(length(limits) == 0) return(NULL)
 
-      return(limits)
+      limit_tbl <- as.data.frame(reduce(limits, rbind))
+
+      limit_tbl <- set_names(limit_tbl, names(limits[[1]]))
+
+      statistic <- NULL
+
+      limit_tbl <- mutate(limit_tbl, statistic = names(limits))
+
+      limit_tbl <- relocate(limit_tbl, statistic)
+
+      return(as_tibble(limit_tbl))
 
     } else {
 
@@ -132,6 +161,52 @@
 
       after_stats <- map(object[c('train', 'test')],
                          row_stats)
+
+      data_set <- NULL
+
+      after_stats <-
+        map2_dfr(after_stats, names(after_stats),
+                 ~mutate(.x[c('variable', 'median', 'mean', 'gini_coef')],
+                         data_set = .y))
+
+      after_stats <- relocate(after_stats, data_set)
+
+      return(list(before_adjustment = before_stats,
+                  after_adjustment = after_stats))
+
+    }
+
+  }
+
+#' @rdname components.modData
+#' @export
+
+  components.modMData <- function(object,
+                                  type = c('train', 'test', 'limits', 'stats'),
+                                  ...) {
+
+    if(type %in% c('train', 'test', 'limits')) {
+
+      NextMethod()
+
+    } else {
+
+      before_stats <- object[['stats']]
+
+      if(length(object[['test']]) > 2) {
+
+        after_stats <- future_map(c(list(train = object[['train']]),
+                                    object[['test']]),
+                                  row_stats,
+                                  .options = furrr_options(seed = TRUE))
+
+      } else {
+
+        after_stats <- map(c(list(train = object[['train']]),
+                             object[['test']]),
+                           row_stats)
+
+      }
 
       data_set <- NULL
 
@@ -170,19 +245,19 @@
 
     stopifnot(is_modData(object))
 
-    map2_dfr(object[c('train', 'test')],
-             c('train', 'test'),
-             ~tibble(data_set = .y,
-                     n_features = nrow(.x),
-                     n_observations = ncol(.x),
-                     n_missing = sum(is.na(.x)),
-                     mean = mean(.x, na.rm = TRUE),
-                     sd = sd(.x, na.rm = TRUE),
-                     median = median(.x, na.rm = TRUE),
-                     q25 = quantile(.x, 0.25, na.rm = TRUE),
-                     q75 = quantile(.x, 0.75, na.rm = TRUE),
-                     q025 = quantile(.x, 0.025, na.rm = TRUE),
-                     q975 = quantile(.x, 0.975, na.rm = TRUE)))
+    mat_stats(object[c('train', 'test')])
+
+  }
+
+#' @rdname summary.modData
+#' @export
+
+  summary.modMData <- function(object, ...) {
+
+    stopifnot(is_modMData(object))
+
+    mat_stats(c(list(train = object[['train']]),
+                object[['test']]))
 
   }
 
@@ -203,10 +278,13 @@
 #' adjustment.
 #'
 #' @param x a `modData` object.
-#' @param palette colors for the training and test data sets.
+#' @param palette a named vector with colors for the training and test data sets.
 #' @param alpha alpha of the violins.
 #' @param stat_color color of the points and whiskers representing
 #' medians and interquartile ranges.
+#' @param show_cutoffs logical, if `TRUE`, cutoffs of mean, median and Gini
+#' index used to select modeling variables will be displayed in plots.
+#' Valid only for objects with a single test matrix.
 #' @param ... extra arguments passed to \code{\link[ggplot2]{geom_violin}}.
 #'
 #' @return a list of `ggplot` objects.
@@ -218,25 +296,47 @@
                            palette = c(train = 'indianred',
                                        test = 'steelblue'),
                            alpha = 0.5,
-                           stat_color = 'orangered2', ...) {
+                           stat_color = 'orangered2',
+                           show_cutoffs = FALSE, ...) {
 
     stopifnot(is_modData(x))
     stopifnot(is.numeric(alpha))
 
     palette <- palette[1:2]
 
+    stopifnot(!is.null(names(palette)))
+
+    stopifnot(is.logical(show_cutoffs))
+
     ## plotting data -------
 
     plot_data <- components(x, 'stats')
 
+    if(is_modMData(x)) {
+
+      plot_levels <- c('train', names(x[['test']]))
+
+      show_cutoffs <- FALSE
+
+    } else {
+
+      plot_levels <- c('train', 'test')
+
+    }
+
+    plot_data <- map(plot_data,
+                     mutate,
+                     data_set = factor(data_set, plot_levels))
+
     ft_numbers <- map(plot_data, ~table(.x[['data_set']]))
 
-    train <- NULL
-    test <- NULL
+    axis_labels <-
+      map(ft_numbers,
+          function(ft) map2_chr(names(ft), ft,
+                                paste, sep = '\nn = '))
 
-    axis_labs <- map(ft_numbers,
-                     ~c(train = paste('train\nn =', .x['train']),
-                        test = paste('test\nn =', .x['test'])))
+    axis_labels <- map(axis_labels,
+                       ~set_names(.x, plot_levels))
 
     selection_limits <-
       set_names(x[c('mean_limits', 'median_limits', 'gini_limits')],
@@ -264,6 +364,11 @@
 
 
     }
+
+    fill_colors <- c(palette['train'],
+                     rep(palette['test'], length(plot_levels) - 1))
+
+    fill_colors <- set_names(fill_colors, plot_levels)
 
     ## plotting --------
 
@@ -295,9 +400,8 @@
                           shape = 18,
                           size = 3,
                           color = stat_color) +
-               scale_x_discrete(limits = c('train', 'test'),
-                                labels = axis_labs[[i]]) +
-               scale_fill_manual(values = palette) +
+               scale_x_discrete(labels = axis_labels[[i]]) +
+               scale_fill_manual(values = fill_colors) +
                guides(fill = 'none') +
                theme(axis.title.x = element_blank()) +
                labs(title = y,
@@ -307,6 +411,8 @@
                                    c('mean', 'median', 'gini_coef'))
 
     }
+
+    if(!show_cutoffs) return(diag_plots)
 
     ## appending the plots of distribution prior to the adjustment
     ## with the selection cutoffs

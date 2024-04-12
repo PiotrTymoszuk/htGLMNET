@@ -2,9 +2,12 @@
 % Please edit documentation in R/modData_oop.R
 \name{components.modData}
 \alias{components.modData}
+\alias{components.modMData}
 \title{Access components of a \code{modData} object.}
 \usage{
 \method{components}{modData}(object, type = c("train", "test", "limits", "stats"), ...)
+
+\method{components}{modMData}(object, type = c("train", "test", "limits", "stats"), ...)
 }
 \arguments{
 \item{object}{a \code{modData} object.}

@@ -42,7 +42,7 @@
 
   modData <- function(x, ...) {
 
-    ## input control --------
+    ## input control: x as a list --------
 
     stopifnot(is.list(x))
 
@@ -55,7 +55,20 @@
 
     }
 
-    matrix_test <- map_lgl(x[c('train', 'test')], is.matrix)
+    ## input controls: numeric matrices --------
+
+    if(!is.list(x[['test']])) {
+
+      check_lst <- x[c('train', 'test')]
+
+    } else {
+
+      check_lst <- c(list(train = x[['train']]),
+                     x[['test']])
+
+    }
+
+    matrix_test <- map_lgl(check_lst, is.matrix)
 
     if(any(!matrix_test)) {
 
@@ -64,7 +77,7 @@
 
     }
 
-    num_test <- map_lgl(x[c('train', 'test')], is.numeric)
+    num_test <- map_lgl(check_lst, is.numeric)
 
     if(any(!num_test)) {
 
@@ -73,7 +86,7 @@
 
     }
 
-    na_test <- map_lgl(x[c('train', 'test')], ~any(is.na(.x)))
+    na_test <- map_lgl(check_lst, ~any(is.na(.x)))
 
     if(any(na_test)) {
 
@@ -83,12 +96,18 @@
 
     }
 
-    if(length(base::setdiff(rownames(x$train), rownames(x$test))) > 0) {
+    common_features <- map(check_lst, rownames)
 
-      stop("Rownames of 'train' and 'test' matrices have to be the same.",
+    common_features <- reduce(common_features, base::intersect)
+
+    if(length(common_features) != nrow(check_lst[[1]])) {
+
+      stop("Row names of 'train' and 'test' matrices have to be the same.",
            call. = FALSE)
 
     }
+
+    ## input control: stats and limits --------
 
     stopifnot(is.data.frame(x$stats))
 
@@ -100,7 +119,17 @@
 
     ## output -------
 
-    structure(x, class = 'modData')
+    if(is.list(x[['test']])) {
+
+      classes <- c('modMData', 'modData')
+
+    } else {
+
+      classes <- 'modData'
+
+    }
+
+    structure(x, class = classes)
 
   }
 

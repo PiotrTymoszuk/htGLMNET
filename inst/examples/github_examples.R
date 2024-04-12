@@ -19,11 +19,13 @@
   training_x[1:5, 1:5]
 
   ## test data: whole-tumor (bulk) gene expression in pancreatic cancers
+  ## of the CPTAC and TCGA cohorts
   ## already log-transformed, to improve normality
 
-  test_x <- paad_cptac
+  test_x <- list(CPTAC = paad_cptac,
+                 TCGA = paad_tcga)
 
-  test_x[1:5, 1:5]
+  test_x$CPTAC[1:5, 1:5]
 
   ## IC50 concentrations in µM of ten anti-cancer drugs
   ## log transformation greatly improves normality!
@@ -60,10 +62,10 @@
   ##
   ## 2) batch adjustment via ComBat
 
-  pre_pro_data <- pre_process(train = training_x,
-                              test = test_x,
-                              median_quantile = 0.2,
-                              gini_quantile = 0.2)
+  pre_pro_data <- multi_process(train = training_x,
+                                test = test_x,
+                                median_quantile = 0.2,
+                                gini_quantile = 0.2)
 
   ## the effects of batch adjustment and common gene numbers
   ## can be inspected by `summary()` and `plot()`
@@ -189,14 +191,16 @@
   ## supplied. The function picks the test data set automatically!
 
   test_ic50 <- predict(train_object,
-                       newdata = pre_pro_data,
+                       newdata = pre_pro_data$test,
                        type = 'response')
 
+  ## a list of matrices is returned
   ## transforming the predicted sensitivities back to µM
 
-  test_ic50 <- exp(test_ic50) * 1e-6
+  test_ic50 <- test_ic50 %>%
+    map(~exp(.x) * 1e-6)
 
-  test_ic50[1:5, 1:5]
+  test_ic50$CPTAC[1:5, 1:5]
 
   ## let's visualize predictions for
   ## the models with the best performance
@@ -210,10 +214,14 @@
 
   ## plotting data in long format
 
-  test_plot_data <- test_ic50[, best_models] %>%
-    as.data.frame %>%
-    rownames_to_column('sample_id') %>%
-    as_tibble
+  test_plot_data <- test_ic50 %>%
+    map(~.x[, best_models]) %>%
+    map(as.data.frame) %>%
+    map(as_tibble)
+
+  test_plot_data <-
+    map2_dfr(test_plot_data, names(test_plot_data),
+             ~mutate(.x, cohort = .y))
 
   test_plot_data <- test_plot_data %>%
     pivot_longer(cols = all_of(best_models),
@@ -222,18 +230,21 @@
 
   test_plot_data %>%
     ggplot(aes(x = reorder(compound, ic50),
-               y = ic50)) +
-    geom_violin(fill = 'cornsilk',
-                scale = 'width') +
+               y = ic50,
+               fill = cohort)) +
+    geom_violin(scale = 'width',
+                position = position_dodge(0.9)) +
     geom_point(shape = 16,
                size = 1,
-               position = position_jitter(width = 0.05,
-                                          height = 0),
-               alpha = 0.25) +
+               position = position_jitterdodge(jitter.width = 0.05,
+                                               jitter.height = 0,
+                                               dodge.width = 0.9),
+               alpha = 0.25,
+               show.legend = FALSE) +
     scale_y_continuous(trans = 'log10') +
     guides(x = guide_axis(angle = 45)) +
     theme_bw() +
-    labs(title = 'Predicted IC50, PAAD CPTAC',
+    labs(title = 'Predicted IC50',
          subtitle = 'Bulk cancer samples',
          x = 'Compound',
          y = 'IC50, µM')

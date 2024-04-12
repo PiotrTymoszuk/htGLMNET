@@ -9,18 +9,23 @@
   palette = c(train = "indianred", test = "steelblue"),
   alpha = 0.5,
   stat_color = "orangered2",
+  show_cutoffs = FALSE,
   ...
 )
 }
 \arguments{
 \item{x}{a \code{modData} object.}
 
-\item{palette}{colors for the training and test data sets.}
+\item{palette}{a named vector with colors for the training and test data sets.}
 
 \item{alpha}{alpha of the violins.}
 
 \item{stat_color}{color of the points and whiskers representing
 medians and interquartile ranges.}
+
+\item{show_cutoffs}{logical, if \code{TRUE}, cutoffs of mean, median and Gini
+index used to select modeling variables will be displayed in plots.
+Valid only for objects with a single test matrix.}
 
 \item{...}{extra arguments passed to \code{\link[ggplot2]{geom_violin}}.}
 }

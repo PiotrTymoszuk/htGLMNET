@@ -28,6 +28,9 @@ or to code{\link[glmnet]{coef.glmnet}}.}
 }
 \value{
 specific for the prediction type, see: \code{Details}.
+If a \code{\link{modData}} object with multiple test data
+(see: \code{\link{multi_process}}) sets will be
+provided as \code{newdata}, a list of matrices is returned.
 }
 \description{
 Predicts outcome, logits, coefficients and similar for a \code{modTrain} object.

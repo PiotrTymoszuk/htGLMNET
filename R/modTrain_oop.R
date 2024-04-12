@@ -240,6 +240,9 @@
 #' \eqn{\lambda}.
 #'
 #' @return specific for the prediction type, see: `Details`.
+#' If a \code{\link{modData}} object with multiple test data
+#' (see: \code{\link{multi_process}}) sets will be
+#' provided as `newdata`, a list of matrices is returned.
 #'
 #' @param object an `modTrain` object.
 #' @param newdata a numeric matrix of explanatory factors with features in rows
@@ -270,86 +273,64 @@
                        'class',
                        'coefficients'))
 
+    # entry control ------
+
     if(type == 'coefficients') return(coef(object, ...))
 
     if(is_modData(newdata)) newdata <- newdata$test
 
-    if(!is.matrix(newdata)) {
+    err_txt <-
+      "'newdata' has to be a numeric matrix or a list of numeric matrices."
 
-      stop("'newdata' has to be a numeric matrix.", call. = FALSE)
+    if(!is.list(newdata)) {
 
-    }
+      if(!is.matrix(newdata)) stop(err_txt, call. = FALSE)
 
-    if(!is.numeric(newdata)) {
+      if(!is.numeric(newdata)) stop(err_txt, call. = FALSE)
 
-      stop("'newdata' has to be a numeric matrix.", call. = FALSE)
-
-    }
-
-    newdata <- t(newdata)
-
-    dots <- list2(...)
-
-    new_offset <- dots$newoffset
-
-    mod_family <- object$globals$family
-
-    ## predictions -------
-
-    if(is.null(new_offset)) {
-
-      preds <- map2(object$models,
-                    object$stats$lambda,
-                    ~predict(.x,
-                             newx = newdata,
-                             s = .y,
-                             type = type,
-                             newoffset = .x$glmnet.fit$offset))
+      newdata <- t(newdata)
 
     } else {
 
-      preds <- map2(object$models,
-                    object$stats$lambda,
-                    ~predict(.x,
-                             newx = newdata,
-                             s = .y,
-                             type = type,
-                             newoffset = new_offset))
+      if(any(!map_lgl(newdata, is.matrix))) stop(err_txt, call. = FALSE)
+
+      if(any(!map_lgl(newdata, is.numeric))) stop(err_txt, call. = FALSE)
+
+      newdata <- map(newdata, t)
 
     }
 
-    responses <- object$stats$response
+    dots <- list2(...)
 
-    if(type == 'class' | mod_family %in% c('gaussian', 'poisson', 'binomial')) {
+    mod_family <- object$globals$family
 
-      for(i in seq_along(preds)) {
+    new_offset <- dots$newoffset
 
-        colnames(preds[[i]]) <- responses[[i]]
+    ## predictions -------
 
-      }
+    if(!is.list(newdata)) {
 
-      pred_mat <- reduce(map(preds, as.matrix), cbind)
+      preds <- pred_(models = object$models,
+                     lambdas = object$stats$lambda,
+                     newx = newdata,
+                     type = type,
+                     family = mod_family,
+                     newoffset = new_offset, ...)
 
-      ## for multinomial model class predictions, row names are not
-      ## provided by default and will be appended
+    } else {
 
-      if(mod_family == 'multinomial') {
-
-        rownames(pred_mat) <- rownames(newdata)
-
-      }
-
-      return(pred_mat)
+      preds <-
+        map(newdata,
+            ~pred_(models = object$models,
+                   lambdas = object$stats$lambda,
+                   newx = .x,
+                   type = type,
+                   family = mod_family,
+                   newoffset = new_offset, ...))
 
     }
 
-    ## for predictions of multinomial models of type 'response' and 'class'
-    ## lists of matrices with elements corresponding to the response variables
-    ## are produced
-
-    preds <- map(preds, ~.x[, , 1])
-
-    return(preds)
+    preds
 
   }
 
