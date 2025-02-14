@@ -10,6 +10,8 @@
 
   library(patchwork)
 
+  createFolds <- caret::createFolds
+
   ## training data: GDSC experiment:
   ## whole-genome expression in untreated cancer cell lines,
   ## log transformed to improve normality
@@ -248,5 +250,71 @@
          subtitle = 'Bulk cancer samples',
          x = 'Compound',
          y = 'IC50, µM')
+
+# Tuning of a single model ----------
+
+  ## X and Y objects (for Gaussian and multinomial modeling)
+
+  tune_x <- t(training_x[1:2000, ])
+  tune_y <- training_ic50[, "Olaparib_1017"]
+
+  tune_class <- training_ic50[, "Olaparib_1017"] %>%
+    cut(breaks = c(-Inf,
+                   quantile(training_ic50[, "Olaparib_1017"], c(1/3, 2/3)),
+                   Inf),
+        labels = c('sensitive', 'intermediate', 'resistant'))
+
+
+  ## list with fold indexes: 100 repetitions 10-fold CV
+
+  tune_folds <- 1:100 %>%
+    map(function(x) createFolds(tune_y,
+                                k = 10,
+                                list = FALSE,
+                                returnTrain = TRUE))
+
+  tune_class_folds <- 1:100 %>%
+    map(function(x) createFolds(tune_class,
+                                k = 10,
+                                list = FALSE,
+                                returnTrain = TRUE))
+
+  cvtune_obj <-
+    tune_glmnet(x = tune_x,
+                y = tune_y,
+                fold_ids = tune_folds,
+                type.measure = 'mae',
+                family = 'gaussian',
+                alpha = 0.5)
+
+  plan('multisession')
+
+  cvtune_class_obj <-
+    tune_glmnet(x = tune_x,
+                y = tune_class,
+                fold_ids = tune_class_folds,
+                type.measure = 'default',
+                family = 'multinomial',
+                alpha = 0.5)
+
+  plan('sequential')
+
+  ## summary and predictions
+
+  summary(cvtune_obj)
+
+  predict(cvtune_obj,
+          newx = tune_x)
+
+  predict(cvtune_class_obj,
+          newx = tune_x,
+          type = 'class')
+
+  coef(cvtune_class_obj)
+
+  ## diagnostic plots
+
+  plot(cvtune_obj)
+  plot(cvtune_class_obj)
 
 # END -----

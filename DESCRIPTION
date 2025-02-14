@@ -2,7 +2,7 @@ Package: htGLMNET
 Type: Package
 Title: High Throughput Light Weight Regularized Regression Modeling for 
     Molecular Data
-Version: 1.1.0
+Version: 1.2.0
 Maintainer: Piotr Tymoszuk <piotr.s.tymoszuk@gmail.com>
 Description: The package enables for fitting and basic evaluation of regularized 
     regression models via the interface of the glmnet package. 

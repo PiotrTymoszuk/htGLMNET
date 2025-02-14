@@ -58,6 +58,7 @@
 #' @importFrom ggplot2 geom_violin
 #' @importFrom ggplot2 geom_errorbar
 #' @importFrom ggplot2 geom_point
+#' @importFrom ggplot2 scale_color_manual
 #' @importFrom ggplot2 scale_fill_manual
 #' @importFrom ggplot2 scale_x_discrete
 #' @importFrom ggplot2 labs

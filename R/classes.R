@@ -292,4 +292,95 @@
 
   }
 
+# cvTune class with tuning results for single models --------
+
+#' `cvTune` class.
+#'
+#' @description
+#' Creates an object of the `modTune` class, which stores results of tuning of
+#' a single `GLMNET` model by repeated cross-validation. The instances can be
+#' created by \code{\link{tune_glmnet}} function.
+#'
+#' @details
+#'
+#' The object has the following components:
+#'
+#' * `stats`: model performance statistic, i.e. the cost function, for the
+#' locally optimal `lambda` values in repeats of the cross-validation. Those
+#' are the `lambda` values, one per repeat, which correspond to the optimum of
+#' the cost function in out-of-fold predictions
+#'
+#' * `lambda`: the globally optimal value of `lambda`m, i.e. the optimum of
+#' `lambdas` for particular repeats listed in `stats`
+#'
+#' * `model`: a `GLMNET` model fit by \code{\link[glmnet]{glmnet}} for the
+#' globally optimal `lambda` value
+#'
+#' Note the methods \code{\link{nobs.cvTune}}, \code{\link{summary.cvTune}},
+#' \code{\link{plot.cvTune}}, \code{\link{coef.cvTune}}, and
+#' \code{\link{predict.cvTune}} defined for the class.
+#'
+#' @return an instance of the `cvTune` class with components
+#' described in `Details`.
+#'
+#' @param x a named list with elements described in `Details`.
+#' @param ... extra arguments, currently none.
+
+  cvTune <- function(x, ...) {
+
+    ## input controls: list properties ----
+
+    if(!is.list(x)) stop("'x' has to be a list.", call. = FALSE)
+
+    if(is.null(names(x))) {
+
+      stop("'x' has to be named list.", call. = FALSE)
+
+    }
+
+    if(!all(c('stats', 'lambda', 'model') %in% names(x))) {
+
+      stop("'x' must have 'stats', 'lambda', and 'model' elements.",
+           call. = FALSE)
+
+    }
+
+    ## input controls: list elements ------
+
+    if(!is.data.frame(x$stats)) {
+
+      stop("'stats' element has to be a data frame.", call. = FALSE)
+
+    }
+
+    if(!all(c('rep', 'lambda', 'cvm', 'cvup', 'cvlo') %in% names(x$stats))) {
+
+      stop(paste("'stats' element must have 'rep', 'lambda',",
+                 "'cvm', 'cvup', 'cvlo' elements."),
+           call. = FALSE)
+
+    }
+
+    rep <- NULL
+
+    x$stats <- relocate(x$stats, rep)
+
+    if(!is.numeric(x$lambda) | length(x$lambda) > 1) {
+
+      stop("'lambda' must be a single numeric value.", call. = FALSE)
+
+    }
+
+    if(!inherits(x$model, 'glmnet')) {
+
+      stop("'model' element must be a 'glmnet' class model.", call. = FALSE)
+
+    }
+
+    ## structure -------
+
+    structure(x, class = 'cvTune')
+
+  }
+
 # END ---------
