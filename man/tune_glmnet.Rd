@@ -41,7 +41,10 @@ are the \code{lambda} values, one per repeat, which correspond to the optimum of
 the cost function in out-of-fold predictions. In case there are two local
 optima, the first one corresponding to a smaller \code{lambda} is returned.
 \item \code{lambda}: the globally optimal value of \code{lambda}m, i.e. the optimum of
-\code{lambdas} for particular repeats listed in \code{stats}
+\code{lambdas} for particular repeats listed in \code{stats}. If multiple values of
+cost function are available for the same value of lambda, then the cost
+function is averaged per lambda value prior to finding the optimal lambda
+value.
 \item \code{model}: a \code{GLMNET} model fit by \code{\link[glmnet]{glmnet}} for the
 globally optimal \code{lambda} value
 }

@@ -25,7 +25,10 @@
 #' optima, the first one corresponding to a smaller `lambda` is returned.
 #'
 #' * `lambda`: the globally optimal value of `lambda`m, i.e. the optimum of
-#' `lambdas` for particular repeats listed in `stats`
+#' `lambdas` for particular repeats listed in `stats`. If multiple values of
+#' cost function are available for the same value of lambda, then the cost
+#' function is averaged per lambda value prior to finding the optimal lambda
+#' value.
 #'
 #' * `model`: a `GLMNET` model fit by \code{\link[glmnet]{glmnet}} for the
 #' globally optimal `lambda` value
@@ -110,13 +113,14 @@
 
     cvm <- NULL
     rep <- NULL
+    lambda <- NULL
 
     tune_models <-
       future_map(fold_ids,
                  function(id) cv.glmnet(x = x,
                                         y = y,
                                         type.measure = type.measure,
-                                        foldid = id, ...),
+                                        fold.id = id, ...),
                  .options = furrr_options(seed = TRUE))
 
     lambda_stats <-
@@ -131,7 +135,23 @@
       map2_dfr(lambda_stats, names(lambda_stats),
                ~mutate(.x[1, ], rep = .y))
 
-    best_lambda <- filter(lambda_stats, cvm == min(cvm))
+    ## finding the optimal stats ---------
+
+    ## it is possible that during multiple runs of the algorithm
+    ## land at the same optimal lambda with different cost functions
+    ## hence, the cost function is averaged
+
+    best_lambda_tbl <-
+      group_by(lambda_stats[c('lambda', 'cvm')],
+               lambda)
+
+    best_lambda_tbl <- summarise(best_lambda_tbl,
+                                 lambda = mean(lambda),
+                                 cvm = mean(cvm))
+
+    best_lambda_tbl <- ungroup(best_lambda_tbl)
+
+    best_lambda <- filter(best_lambda_tbl, cvm == opt_fun(cvm))
 
     best_lambda <- best_lambda$lambda[[1]]
 
