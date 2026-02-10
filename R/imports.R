@@ -10,6 +10,7 @@
 #' @importFrom dplyr relocate
 #' @importFrom dplyr select
 #' @importFrom dplyr group_by
+#' @importFrom dplyr ungroup
 #' @importFrom dplyr summarise
 #' @importFrom dplyr top_n
 #'

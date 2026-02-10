@@ -250,7 +250,7 @@
 #' created e.g. with the \code{\link{pre_process}} function.
 #' @param type type of prediction, see: `Details`.
 #' @param ... extra arguments passed to \code{\link[glmnet]{predict.glmnet}}
-#' or to code{\link[glmnet]{coef.glmnet}}.
+#' or to \code{\link[glmnet]{coef.glmnet}}.
 #'
 #' @export predict.modTrain
 #' @export

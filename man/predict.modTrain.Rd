@@ -24,7 +24,7 @@ created e.g. with the \code{\link{pre_process}} function.}
 \item{type}{type of prediction, see: \code{Details}.}
 
 \item{...}{extra arguments passed to \code{\link[glmnet]{predict.glmnet}}
-or to code{\link[glmnet]{coef.glmnet}}.}
+or to \code{\link[glmnet]{coef.glmnet}}.}
 }
 \value{
 specific for the prediction type, see: \code{Details}.

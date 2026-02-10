@@ -3,7 +3,7 @@ High Throughput Light Weight Regularized Regression Modeling for Molecular Data
 
 ## Summary
 The package enables for fitting and basic evaluation of regularized regression models via the interface of the _glmnet_ package [^1]. 
-The pre-processing, modeling, evalaution, and prediction tools were fine-tuned specifically for use with genomic, transcriptomic, proteomic and pharmaco-molecular data.
+The pre-processing, modeling, evaluation, and prediction tools were fine-tuned specifically for use with genomic, transcriptomic, proteomic and pharmaco-molecular data.
 
 ## Instalation
 
@@ -35,7 +35,7 @@ Special thanks to Paul Geeleher, Danielle Maeser, Robert Gruener and Stephanie H
 Regularized linear modeling with RIDGE, LASSO and Elastic Net algorithms is a canonical machine learning approach widely used in molecular _in silico_ studies which tackle inherently multi-dimensional data, e.g. expression levels of thousands of genes for few-to-few-hundred samples. 
 Its usefulness comes from the general property of regularization which reduces over-fitting and, in case of so called L1-regularized LASSO and Elastic Net models, enables for selection of modeling features, e.g. association of the requested outcome with expression levels of few genes [^1][^5][^6]. 
 
-Our toolset is optimized for easy handling of high-dimensinal molecular biology numeric data sets in a classical machine learning workflow. 
+Our tool set is optimized for easy handling of high-dimensional molecular biology numeric data sets in a classical machine learning workflow. 
 The general idea of the package is to bundle three steps of regularized linear modeling in a comprehensive pipeline with basic quality control: 
 
 1. __pre-processing__ accomplished by `pre_process()` involves selection of common explanatory variables shared by the training and test data set, and subsequent removal of unwanted batch effects with the _ComBat_ procedure [^7]
@@ -287,14 +287,14 @@ pre_pro_plots <- plot(pre_pro_data)
 
 <details>
 
-In this section we are going to select the optimal value of the shrinkage paramater &lambda; by cross-validation of the training data set, construct a series of regularized models and evaluate them. 
+In this section we are going to select the optimal value of the shrinkage parameter &lambda; by cross-validation of the training data set, construct a series of regularized models and evaluate them. 
 Those tasks are accomplished by the function `train()`. 
 In this case, `train()` is supplied with the output of `pre_process()` as `x` argument; the matrix of explanatory variables for the training data set is picked automatically. 
 The user is also welcome to provide any numeric matrix as `x` which fulfills two criteria: (1) features in rows and observations in columns, and (2) row and column names defined. 
-Critially, column names of `x` and rownames of `y` must overlap for matching the explanatory factors and the response. 
+Critically, column names of `x` and row names of `y` must overlap for matching the explanatory factors and the response. 
 `NA` values are allowed in `y` and will be silently skipped. 
 As we are fitting a series of Elastic Net models of drug sensitivity, we are setting the mixing parameter `alpha` to 0.5. 
-Mean squared error seves as the loss function, i.e. model selection criterion. 
+Mean squared error serves as the loss function, i.e. model selection criterion. 
 By declaring `plan('multisession')`, we are allowing for a parallel run:
 
 ```r
@@ -374,7 +374,7 @@ train_plots$rsq_pearson +
 
 In this section, we are going to exploit the trained models to glimpse at genes associated with response towards particular anti-cancer compounds. 
 Our modeling approach bases on the Elastic Net algorithm, which in fact uses just few-to-few-hundred explanatory variables of roughly 7000+ genes available for modeling. 
-Such genes selected by the algorithm are expected to associate strongly with the response, in our case with drug sensitivity, and can be regarded as a kind of 'drug response signauture'. 
+Such genes selected by the algorithm are expected to associate strongly with the response, in our case with drug sensitivity, and can be regarded as a kind of 'drug response signature'. 
 In the following code, we are going to retrieve such genes characterized by non-zero &beta; coefficients and visualize their coefficient values for one popular anti cancer gene, cis-platin. 
 
 Model coefficients are computed by calling `coef()`, which returns a matrix of model coefficients for all genes used for modeling and the model intercept:
